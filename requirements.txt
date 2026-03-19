@@ -1,0 +1,8 @@
+flask
+flask-cors
+bcrypt
+groq
+yagmail
+firebase-admin
+apscheduler
+python-dotenv

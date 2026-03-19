@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<title>Workout History</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Outfit',sans-serif}
+body{height:100vh;background:black;color:#c68642;display:flex;flex-direction:column;align-items:center;}
+#bgVideo{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:-2;}
+body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:-1;}
+.header{width:100%;display:flex;justify-content:center;align-items:center;position:relative;padding:20px;border-bottom:1px solid #333;}
+.header h1{font-family:Impact;letter-spacing:4px;}
+.backBtn{position:absolute;left:20px;background:#333;color:white;border:none;padding:8px 14px;cursor:pointer;border-radius:5px;}
+.historyContainer{margin-top:60px;width:600px;background:rgba(255,255,255,0.05);backdrop-filter:blur(6px);padding:30px;border-radius:10px;text-align:center;}
+.dateLabel{color:#c68642;font-size:16px;margin-bottom:5px;font-weight:bold;}
+.completedBadge{font-size:12px;color:#4caf50;margin-bottom:15px;}
+.navArrows{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;font-size:24px;}
+.navArrows span{font-size:13px;color:#888;}
+ul{list-style:none;line-height:32px;}
+li{color:#ddd;border-bottom:1px solid #1a1a1a;padding:4px 0;}
+.emptyMsg{color:#555;font-size:14px;padding:20px;}
+</style>
+</head>
+<body>
+
+<video autoplay muted loop id="bgVideo">
+<source src="{{ url_for('static', filename='laidclip.mp4') }}" type="video/mp4">
+</video>
+
+<div class="header">
+  <button class="backBtn" onclick="goBack()">← Back</button>
+  <h1>HISTORY</h1>
+</div>
+
+<div class="historyContainer">
+  <div class="navArrows">
+    <i class="fa fa-arrow-left" onclick="previousWorkout()" style="cursor:pointer"></i>
+    <span id="counterLabel">0 / 0</span>
+    <i class="fa fa-arrow-right" onclick="nextWorkout()" style="cursor:pointer"></i>
+  </div>
+
+  <div class="dateLabel" id="dateLabel">--</div>
+  <div class="completedBadge" id="completedBadge"></div>
+
+  <ul id="workoutList">
+    <li class="emptyMsg">Loading history...</li>
+  </ul>
+</div>
+
+<script>
+const userId = localStorage.getItem("user_id")
+if(!userId) window.location.href = "/"
+
+let history = []
+let index   = 0
+
+window.onload = async function(){
+  try {
+    let res  = await fetch(`/get_history/${userId}`)
+    let data = await res.json()
+
+    if(data.status === "success" && data.history.length > 0){
+      history = data.history
+      index   = 0
+      showWorkout()
+    } else {
+      document.getElementById("workoutList").innerHTML = `<li class="emptyMsg">No workout history yet. Complete your first workout!</li>`
+      document.getElementById("dateLabel").innerText = "--"
+    }
+  } catch(e) {
+    document.getElementById("workoutList").innerHTML = `<li class="emptyMsg">Could not load history.</li>`
+  }
+}
+
+function showWorkout(){
+  let entry = history[index]
+  let list  = document.getElementById("workoutList")
+
+  document.getElementById("dateLabel").innerText     = entry.date
+  document.getElementById("completedBadge").innerText = entry.completed ? "✓ Completed" : ""
+  document.getElementById("counterLabel").innerText  = `${index + 1} / ${history.length}`
+
+  list.innerHTML = ""
+  entry.exercises.forEach(ex => {
+    if(ex.trim()){
+      let li = document.createElement("li")
+      li.innerText = ex
+      list.appendChild(li)
+    }
+  })
+}
+
+function nextWorkout(){
+  if(index < history.length - 1){ index++; showWorkout() }
+}
+
+function previousWorkout(){
+  if(index > 0){ index--; showWorkout() }
+}
+
+function goBack(){
+  window.location.href = "/dashboard"
+}
+</script>
+</body>
+</html>

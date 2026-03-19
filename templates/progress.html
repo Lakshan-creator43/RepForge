@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<title>Rep Forge - Progress</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Outfit',sans-serif}
+body{background:black;color:#c68642;min-height:100vh;display:flex;flex-direction:column;align-items:center;}
+#bgVideo{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:-2;}
+body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:-1;}
+.header{width:100%;display:flex;justify-content:center;align-items:center;position:relative;padding:20px;border-bottom:1px solid #333;}
+.header h1{font-family:Impact;letter-spacing:4px;}
+.backBtn{position:absolute;left:20px;background:#333;color:white;border:none;padding:8px 14px;cursor:pointer;border-radius:5px;}
+.charts{width:90%;max-width:1000px;margin:40px auto;display:flex;flex-direction:column;gap:40px;}
+.chartBox{background:rgba(255,255,255,0.05);backdrop-filter:blur(6px);padding:30px;border-radius:10px;}
+.chartBox h2{text-align:center;margin-bottom:8px;font-size:18px;color:#c68642;}
+.chartBox p{text-align:center;color:#888;font-size:13px;margin-bottom:20px;}
+.statsRow{display:flex;justify-content:center;gap:30px;margin-bottom:20px;}
+.statCard{background:#1a1a1a;padding:15px 25px;border-radius:8px;text-align:center;}
+.statCard h3{font-size:28px;color:#c68642;}
+.statCard p{font-size:12px;color:#888;margin-top:4px;}
+canvas{max-height:300px;}
+
+#bgVideo{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:-2;}
+body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:-1;}
+</style>
+</head>
+<body>
+ 
+
+<video autoplay muted loop id="bgVideo">
+<source src="{{ url_for('static', filename='laidclip.mp4') }}" type="video/mp4">
+</video>
+
+<div class="header">
+  <button class="backBtn" onclick="goBack()">← Back</button>
+  <h1>PROGRESS</h1>
+</div>
+
+<div class="charts">
+
+  <!-- STATS ROW -->
+  <div class="statsRow">
+    <div class="statCard">
+      <h3 id="totalWorkouts">0</h3>
+      <p>Total Workouts</p>
+    </div>
+    <div class="statCard">
+      <h3 id="completedCount">0</h3>
+      <p>Completed</p>
+    </div>
+    <div class="statCard">
+      <h3 id="consistencyPct">0%</h3>
+      <p>Consistency</p>
+    </div>
+    <div class="statCard">
+      <h3 id="streakCount">0</h3>
+      <p>Day Streak 🔥</p>
+    </div>
+  </div>
+
+  <!-- CHART 1 — CONSISTENCY -->
+  <div class="chartBox">
+    <h2>💪 Workout Consistency</h2>
+    <p>Last 30 days — green means you crushed it!</p>
+    <canvas id="consistencyChart"></canvas>
+  </div>
+
+  <!-- CHART 2 — MUSCLE ACTIVITY -->
+  <div class="chartBox">
+    <h2>🏋️ Muscle Group Activity</h2>
+    <p>Which muscles you've been training the most</p>
+    <canvas id="muscleChart"></canvas>
+  </div>
+
+</div>
+
+<script>
+const userId = localStorage.getItem("user_id")
+if(!userId) window.location.href = "/"
+
+window.onload = async function(){
+  try {
+    let res  = await fetch(`/get_progress/${userId}`)
+    let data = await res.json()
+
+    if(data.status !== "success") return
+
+    let p = data.progress
+
+    // Stats
+    document.getElementById("totalWorkouts").innerText  = p.total
+    document.getElementById("completedCount").innerText = p.completed
+    document.getElementById("consistencyPct").innerText = p.consistency + "%"
+    document.getElementById("streakCount").innerText    = p.streak
+
+    // Chart 1 — Consistency (last 30 days)
+    let ctx1 = document.getElementById("consistencyChart").getContext("2d")
+    new Chart(ctx1, {
+      type: "bar",
+      data: {
+        labels: p.last30.map(d => d.date.slice(5)), // MM-DD
+        datasets: [{
+          label: "Workout Done",
+          data: p.last30.map(d => d.completed ? 1 : 0.3),
+          backgroundColor: p.last30.map(d => d.completed ? "#4caf50" : "#8c4b1f"),
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ctx.raw === 1 ? "✅ Completed" : "❌ Missed"
+            }
+          }
+        },
+        scales: {
+          y: {
+            display: false,
+            max: 1.2
+          },
+          x: {
+            ticks: { color: "#888", font: { size: 10 } },
+            grid: { color: "#222" }
+          }
+        }
+      }
+    })
+
+    // Chart 2 — Muscle Groups
+    let ctx2 = document.getElementById("muscleChart").getContext("2d")
+    new Chart(ctx2, {
+      type: "doughnut",
+      data: {
+        labels: p.muscles.map(m => m.muscle),
+        datasets: [{
+          data: p.muscles.map(m => m.count),
+          backgroundColor: [
+            "#c68642","#8c4b1f","#4caf50","#2196f3",
+            "#e91e63","#ff9800","#9c27b0","#00bcd4"
+          ],
+          borderColor: "#111",
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: { color: "#c68642", padding: 15 }
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${ctx.label}: ${ctx.raw} sessions`
+            }
+          }
+        }
+      }
+    })
+
+  } catch(e) {
+    console.error(e)
+  }
+}
+
+function goBack(){
+  window.location.href = "/dashboard"
+}
+</script>
+</body>
+</html>

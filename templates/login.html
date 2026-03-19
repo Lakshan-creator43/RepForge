@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<meta charset="UTF-8">
+<title>Rep Forge Login</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Times New Roman",Times,serif;}
+body{margin:0;height:100vh;display:flex;align-items:center;}
+#bg-video{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:-1;}
+body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:-1;}
+.container{position:fixed;right:0;top:0;width:20%;height:100vh;background:black;padding:40px;display:flex;flex-direction:column;justify-content:center;overflow:hidden;}
+@media(max-width:900px){.container{width:100%;}}
+.title1,.title2{font-family:Impact;font-size:60px;font-style:italic;letter-spacing:4px;text-align:center;text-transform:uppercase;color:#8c500f;text-shadow:0 3px 6px rgba(0,0,0,0.9),0 0 6px #8c4b1f;}
+.title2{margin-bottom:15px;}
+.toggle-buttons{display:flex;margin-bottom:20px;}
+.toggle-buttons button{flex:1;padding:10px;border:none;cursor:pointer;background:#2a1a12;color:#c68642;font-weight:bold;}
+.toggle-buttons button.active{background:#8c4b1f;color:#f0c28b;}
+.form{display:none;flex-direction:column;width:100%;}
+.form.active{display:flex;}
+.input-box{position:relative;width:100%;}
+.input-box i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#c68642;}
+.input-box .toggle-eye{left:auto;right:10px;cursor:pointer;}
+input,select{width:100%;padding:12px 35px;margin:8px 0;border:none;background:#1f1510;color:#c68642;}
+input::placeholder{color:#9c6a3d;}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+input[type=number]{-moz-appearance:textfield;}
+button.submit,.next-btn,.back-btn{margin-top:15px;padding:12px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;transition:.3s;}
+.next-btn,.submit{background:linear-gradient(90deg,#6b3b1c,#c68642,#6b3b1c);color:#111;}
+.back-btn{background:#333;color:white;margin-right:10px;}
+.next-btn:hover,.submit:hover{transform:scale(1.05);box-shadow:0 0 12px rgba(198,134,66,0.6);}
+.footer{margin-top:15px;font-size:12px;color:#888;text-align:center;}
+.slide{position:absolute;top:0;left:100%;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;padding:40px;transition:.5s;background:black;}
+.slide.active{left:0;}
+.slide.left{left:-100%;}
+.error-msg{color:#ff6b6b;font-size:12px;margin-top:5px;text-align:center;min-height:16px;}
+</style>
+</head>
+<body>
+
+<video autoplay muted loop id="bg-video">
+<source src="{{ url_for('static', filename='loginclip1.mp4') }}" type="video/mp4">
+</video>
+
+<!-- LOGIN PAGE MUSIC — plays once, stops on login/signup -->
+<audio id="loginMusic" preload="auto">
+  <source src="{{ url_for('static', filename='loginmusic.mp3') }}" type="audio/mp3">
+</audio>
+
+<div class="container">
+
+  <div id="authSection">
+    <div class="title1">REP</div>
+    <div class="title2">FORGE</div>
+
+    <div class="toggle-buttons">
+      <button class="active" onclick="showForm('login',event)">SIGN IN</button>
+      <button onclick="showForm('signup',event)">SIGN UP</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <form id="login" class="form active">
+      <div class="input-box">
+        <i class="fa fa-envelope"></i>
+        <input type="text" id="loginEmail" placeholder="Email" oninput="autoGmail(this)" required>
+      </div>
+      <div class="input-box">
+        <i class="fa fa-lock"></i>
+        <input type="password" id="loginPass" placeholder="Password">
+        <i class="fa fa-eye toggle-eye" onclick="togglePassword('loginPass',this)"></i>
+      </div>
+      <div class="error-msg" id="loginError"></div>
+      <button type="button" class="submit" onclick="loginUser()">LOGIN</button>
+    </form>
+
+    <!-- SIGNUP FORM -->
+    <form id="signup" class="form">
+      <div class="input-box">
+        <i class="fa fa-user"></i>
+        <input type="text" id="name" placeholder="Full Name">
+      </div>
+      <div class="input-box">
+        <i class="fa fa-envelope"></i>
+        <input type="text" id="email" placeholder="Email" oninput="autoGmail(this)">
+      </div>
+      <div class="input-box">
+        <i class="fa fa-lock"></i>
+        <input type="password" id="signPass" placeholder="Password">
+        <i class="fa fa-eye toggle-eye" onclick="togglePassword('signPass',this)"></i>
+      </div>
+      <div class="input-box">
+        <i class="fa fa-lock"></i>
+        <input type="password" id="confirmPass" placeholder="Confirm Password">
+      </div>
+      <div class="error-msg" id="signupError"></div>
+      <button type="button" class="submit" onclick="openPersonal()">CREATE ACCOUNT</button>
+    </form>
+
+    <div class="footer">Train Hard • Stay Consistent</div>
+  </div>
+
+  <!-- PERSONAL DETAILS SLIDE -->
+  <div id="personalSlide" class="slide">
+    <h2 style="color:#c68642;text-align:center;margin-bottom:15px;">PERSONAL DETAILS</h2>
+    <p id="usernameShow" style="color:#aaa;text-align:center;margin-bottom:10px;"></p>
+    <input id="phone" placeholder="Phone Number">
+    <input id="age" placeholder="Age" type="number">
+    <div class="error-msg" id="personalError"></div>
+    <button class="next-btn" onclick="nextSlide()">Next →</button>
+  </div>
+
+  <!-- BODY DETAILS SLIDE -->
+  <div id="bodySlide" class="slide">
+    <h2 style="color:#c68642;text-align:center;margin-bottom:20px;">BODY DETAILS</h2>
+    <label style="color:#aaa">Weight (kg)</label>
+    <input type="number" id="weight" placeholder="e.g. 75">
+    <label style="color:#aaa">Height (cm)</label>
+    <input type="number" id="height" placeholder="e.g. 175">
+    <label style="color:#aaa">Waist Size (cm)</label>
+    <input type="number" id="waist" placeholder="e.g. 80">
+    <label style="color:#aaa">Neck Size (cm)</label>
+    <input type="number" id="neck" placeholder="e.g. 38">
+    <label style="color:#aaa">Goal Weight (kg)</label>
+    <input type="number" id="goal" placeholder="e.g. 70">
+    <div class="error-msg" id="bodyError"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:15px;">
+      <button class="back-btn" onclick="backSlide()">← Back</button>
+      <button type="button" class="submit" onclick="submitSignup()">Submit</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const music = document.getElementById("loginMusic")
+music.volume = 0.2
+
+// Start music on first click
+document.addEventListener("click", function startOnce(){
+  music.play().catch(e => {})
+  document.removeEventListener("click", startOnce)
+}, { once: true })
+
+// Stop music smoothly
+function stopMusic(){
+  let vol = music.volume
+  let fade = setInterval(() => {
+    if(vol > 0.05){
+      vol -= 0.05
+      music.volume = vol
+    } else {
+      music.pause()
+      music.currentTime = 0
+      clearInterval(fade)
+    }
+  }, 80)
+}
+
+function autoGmail(input){
+  let value = input.value
+  if(value.includes("@") && !value.includes("@gmail.com")){
+    input.value = value.split("@")[0] + "@gmail.com"
+  }
+}
+
+function showForm(formType, event){
+  document.querySelectorAll(".form").forEach(f => f.classList.remove("active"))
+  document.getElementById(formType).classList.add("active")
+  document.querySelectorAll(".toggle-buttons button").forEach(b => b.classList.remove("active"))
+  event.target.classList.add("active")
+}
+
+function togglePassword(id, icon){
+  let input = document.getElementById(id)
+  if(input.type === "password"){
+    input.type = "text"
+    icon.classList.replace("fa-eye","fa-eye-slash")
+  } else {
+    input.type = "password"
+    icon.classList.replace("fa-eye-slash","fa-eye")
+  }
+}
+
+// ── LOGIN ──
+async function loginUser(){
+  let email = document.getElementById("loginEmail").value.trim()
+  let pass  = document.getElementById("loginPass").value
+  let errEl = document.getElementById("loginError")
+  errEl.innerText = ""
+
+  if(!email || !pass){ errEl.innerText = "Please enter email and password"; return }
+
+  stopMusic()
+
+  try {
+    let res  = await fetch("/login", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({email, password: pass})
+    })
+    let data = await res.json()
+
+    if(data.status === "success"){
+      localStorage.setItem("user_id", data.user_id)
+      localStorage.setItem("user_name", data.name)
+      window.location.href = "/dashboard"
+    } else {
+      errEl.innerText = data.message || "Login failed"
+      music.play().catch(e => {}) // resume if login failed
+    }
+  } catch(e) {
+    errEl.innerText = "Server error. Try again."
+  }
+}
+
+// ── SIGNUP STEP 1 ──
+function openPersonal(){
+  let name    = document.getElementById("name").value.trim()
+  let email   = document.getElementById("email").value.trim()
+  let pass    = document.getElementById("signPass").value
+  let confirm = document.getElementById("confirmPass").value
+  let errEl   = document.getElementById("signupError")
+  errEl.innerText = ""
+
+  if(name.length < 3){ errEl.innerText = "Enter a valid name"; return }
+  if(!email.match(/^[^ ]+@[^ ]+\.[a-z]{2,3}$/)){ errEl.innerText = "Enter a valid email"; return }
+  if(pass.length < 6){ errEl.innerText = "Password must be at least 6 characters"; return }
+  if(pass !== confirm){ errEl.innerText = "Passwords do not match"; return }
+
+  document.getElementById("usernameShow").innerText = "Welcome " + name
+  document.getElementById("authSection").style.display = "none"
+  document.getElementById("personalSlide").classList.add("active")
+}
+
+// ── SIGNUP STEP 2 ──
+function nextSlide(){
+  let phone = document.getElementById("phone").value.trim()
+  let age   = document.getElementById("age").value
+  let errEl = document.getElementById("personalError")
+  errEl.innerText = ""
+
+  if(phone.length !== 10 || isNaN(phone)){ errEl.innerText = "Phone must be 10 digits"; return }
+  if(age < 10 || age > 99){ errEl.innerText = "Enter a valid age (10-99)"; return }
+
+  document.getElementById("personalSlide").classList.remove("active")
+  document.getElementById("personalSlide").classList.add("left")
+  document.getElementById("bodySlide").classList.add("active")
+}
+
+function backSlide(){
+  document.getElementById("bodySlide").classList.remove("active")
+  document.getElementById("personalSlide").classList.remove("left")
+  document.getElementById("personalSlide").classList.add("active")
+}
+
+// ── SIGNUP FINAL SUBMIT ──
+async function submitSignup(){
+  let errEl = document.getElementById("bodyError")
+  errEl.innerText = ""
+
+  let payload = {
+    name:     document.getElementById("name").value.trim(),
+    email:    document.getElementById("email").value.trim(),
+    password: document.getElementById("signPass").value,
+    phone:    "+91" + document.getElementById("phone").value.trim().replace("+91",""),
+    age:      document.getElementById("age").value,
+    weight:   document.getElementById("weight").value,
+    height:   document.getElementById("height").value,
+    waist:    document.getElementById("waist").value,
+    neck:     document.getElementById("neck").value,
+    goal:     document.getElementById("goal").value
+  }
+
+  for(let key of ["weight","height","waist","neck","goal"]){
+    if(!payload[key]){ errEl.innerText = "Please fill all body fields"; return }
+  }
+
+  stopMusic()
+
+  try {
+    let res  = await fetch("/signup", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    })
+    let data = await res.json()
+
+    if(data.status === "success"){
+      localStorage.setItem("user_id", data.user_id)
+      localStorage.setItem("user_name", payload.name)
+      window.location.href = "/dashboard"
+    } else {
+      errEl.innerText = data.message || "Signup failed"
+    }
+  } catch(e) {
+    errEl.innerText = "Server error. Try again."
+  }
+}
+</script>
+</body>
+</html>

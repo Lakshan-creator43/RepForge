@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<title>Manage Profile</title>
+<style>
+body{background:black;color:#c68642;font-family:'Outfit',sans-serif;margin:0;min-height:100vh;display:flex;flex-direction:column;}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:20px 40px;}
+.leftControls{display:flex;align-items:center;gap:15px;}
+.backBtn{background:#333;border:none;padding:8px 14px;color:white;cursor:pointer;border-radius:5px;}
+.editBtn{background:#8c4b1f;border:none;padding:6px 14px;color:white;cursor:pointer;border-radius:5px;}
+.logoutBtn{background:#c68642;border:none;padding:8px 18px;cursor:pointer;border-radius:5px;font-weight:bold;}
+.updateBtn{background:#4caf50;border:none;padding:8px 18px;cursor:pointer;border-radius:5px;font-weight:bold;display:none;color:white;}
+.progressBtn{background:#2196f3;border:none;padding:8px 18px;cursor:pointer;border-radius:5px;font-weight:bold;color:white;}
+.container{flex:1;display:flex;justify-content:center;align-items:center;padding:20px;}
+#bgVideo{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:-1;filter:blur(8px);}
+.formBox{width:900px;background:#111;padding:40px;border-radius:10px;position:relative;z-index:1;}
+
+/* PROFILE PIC */
+.picSection{display:flex;flex-direction:column;align-items:center;margin-bottom:30px;}
+.picWrapper{position:relative;width:110px;height:110px;cursor:pointer;}
+.picWrapper img{width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid #c68642;display:none;}
+.picWrapper .defaultIcon{font-size:90px;color:#c68642;display:block;}
+.picWrapper .editOverlay{position:absolute;bottom:0;right:0;background:#c68642;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.picWrapper .editOverlay i{font-size:14px;color:black;}
+#picInput{display:none;}
+.picName{margin-top:10px;font-size:18px;font-weight:bold;color:#c68642;}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.field{display:flex;flex-direction:column;}
+.field label{margin-bottom:5px;font-size:14px;color:#aaa;}
+input{padding:12px;background:#222;border:none;color:#c68642;border-radius:4px;}
+input:disabled{opacity:0.6;}
+.statusMsg{text-align:center;margin-top:15px;font-size:14px;min-height:18px;}
+.deleteBtn{margin-top:25px;width:100%;padding:12px;background:transparent;border:1px solid #ff4444;color:#ff4444;cursor:pointer;border-radius:6px;font-size:14px;transition:.3s;}
+.deleteBtn:hover{background:#ff4444;color:white;}
+
+/* CONFIRM POPUP */
+.overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:999;justify-content:center;align-items:center;}
+.overlay.open{display:flex;}
+.popup{background:#111;border:1px solid #333;padding:40px;border-radius:10px;text-align:center;width:380px;}
+.popup h3{color:#ff4444;margin-bottom:15px;font-size:20px;}
+.popup p{color:#aaa;margin-bottom:25px;line-height:22px;}
+.popupBtns{display:flex;gap:15px;justify-content:center;}
+.cancelBtn{background:#333;border:none;padding:10px 25px;color:white;cursor:pointer;border-radius:6px;}
+.confirmDeleteBtn{background:#ff4444;border:none;padding:10px 25px;color:white;cursor:pointer;border-radius:6px;font-weight:bold;}
+</style>
+</head>
+<body>
+
+<video autoplay muted loop id="bgVideo">
+<source src="{{ url_for('static', filename='laidclip.mp4') }}" type="video/mp4">
+</video>
+
+<!-- DELETE CONFIRM POPUP -->
+<div class="overlay" id="deleteOverlay">
+  <div class="popup">
+    <h3>⚠️ Delete Account</h3>
+    <p>Are you sure? This will permanently delete your account, all workouts, and history. This cannot be undone!</p>
+    <div class="popupBtns">
+      <button class="cancelBtn" onclick="closeDelete()">Cancel</button>
+      <button class="confirmDeleteBtn" onclick="confirmDelete()">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="leftControls">
+    <button class="backBtn" onclick="goBack()">← Back</button>
+    <button class="editBtn" onclick="enableEdit()">Edit</button>
+  </div>
+  <div style="display:flex;gap:10px;">
+    <button class="progressBtn" onclick="window.location.href='/progress'">📊 Progress</button>
+    <button id="logoutBtn" class="logoutBtn" onclick="logout()">Logout</button>
+    <button id="updateBtn" class="updateBtn" onclick="updateProfile()">Update</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="formBox">
+
+    <!-- PROFILE PICTURE SECTION -->
+    <div class="picSection">
+      <div class="picWrapper" onclick="document.getElementById('picInput').click()">
+        <i class="fa-solid fa-circle-user defaultIcon" id="defaultIcon"></i>
+        <img id="profilePic" src="" alt="Profile">
+        <div class="editOverlay"><i class="fa fa-camera"></i></div>
+      </div>
+      <div class="picName" id="picName">--</div>
+      <input type="file" id="picInput" accept="image/*" onchange="uploadPic(this)">
+    </div>
+
+    <div class="grid">
+      <div class="field"><label>Name</label><input id="name" disabled></div>
+      <div class="field"><label>Email</label><input id="email" disabled></div>
+      <div class="field"><label>Age</label><input id="age" type="number" disabled></div>
+      <div class="field"><label>Phone Number</label><input id="phone" disabled></div>
+      <div class="field"><label>Weight (kg)</label><input id="weight" type="number" disabled></div>
+      <div class="field"><label>Height (cm)</label><input id="height" type="number" disabled></div>
+      <div class="field"><label>Waist Size (cm)</label><input id="waist" type="number" disabled></div>
+      <div class="field"><label>Neck Size (cm)</label><input id="neck" type="number" disabled></div>
+      <div class="field"><label>Goal Weight (kg)</label><input id="goal" type="number" disabled></div>
+    </div>
+    <div class="statusMsg" id="statusMsg"></div>
+    <button class="deleteBtn" onclick="openDelete()">🗑️ Delete My Account</button>
+  </div>
+</div>
+
+<script>
+const userId = localStorage.getItem("user_id")
+if(!userId) window.location.href = "/"
+
+let editMode = false
+
+window.onload = async function(){
+  try {
+    let res  = await fetch(`/get_profile/${userId}`)
+    let data = await res.json()
+    if(data.status === "success"){
+      let u = data.user
+      document.getElementById("name").value   = u.name   || ""
+      document.getElementById("email").value  = u.email  || ""
+      document.getElementById("age").value    = u.age    || ""
+      document.getElementById("phone").value  = u.phone  || ""
+      document.getElementById("weight").value = u.weight || ""
+      document.getElementById("height").value = u.height || ""
+      document.getElementById("waist").value  = u.waist  || ""
+      document.getElementById("neck").value   = u.neck   || ""
+      document.getElementById("goal").value   = u.goal_weight || ""
+      document.getElementById("picName").innerText = u.name.split(" ")[0] || "--"
+    }
+  } catch(e) {}
+
+  // Load profile pic
+  loadProfilePic()
+}
+
+async function loadProfilePic(){
+  try {
+    let res  = await fetch(`/get_pic/${userId}`)
+    let data = await res.json()
+    if(data.pic){
+      showPic(data.pic)
+      // Save to localStorage for dashboard
+      localStorage.setItem("profile_pic", data.pic)
+    }
+  } catch(e) {}
+}
+
+function showPic(base64){
+  let img     = document.getElementById("profilePic")
+  let icon    = document.getElementById("defaultIcon")
+  img.src     = base64
+  img.style.display   = "block"
+  icon.style.display  = "none"
+}
+
+async function uploadPic(input){
+  let file = input.files[0]
+  if(!file) return
+
+  let statusEl = document.getElementById("statusMsg")
+  statusEl.style.color = "#aaa"
+  statusEl.innerText   = "Uploading..."
+
+  let reader = new FileReader()
+  reader.onload = async function(e){
+    let base64 = e.target.result
+
+    // Show preview immediately
+    showPic(base64)
+
+    // Save to server
+    try {
+      let res  = await fetch("/upload_pic", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({user_id: userId, pic: base64})
+      })
+      let data = await res.json()
+
+      if(data.status === "success"){
+        localStorage.setItem("profile_pic", base64)
+        statusEl.style.color = "#4caf50"
+        statusEl.innerText   = "✓ Profile picture updated!"
+        setTimeout(() => statusEl.innerText = "", 3000)
+      } else {
+        statusEl.style.color = "#ff6b6b"
+        statusEl.innerText   = "Upload failed"
+      }
+    } catch(e) {
+      statusEl.style.color = "#ff6b6b"
+      statusEl.innerText   = "Server error"
+    }
+  }
+  reader.readAsDataURL(file)
+}
+
+function enableEdit(){
+  editMode = true
+  document.querySelectorAll("input").forEach(i => {
+    if(i.id !== "email") i.disabled = false
+  })
+  document.getElementById("logoutBtn").style.display = "none"
+  document.getElementById("updateBtn").style.display = "inline-block"
+}
+
+async function updateProfile(){
+  let statusEl = document.getElementById("statusMsg")
+  statusEl.innerText = "Saving..."
+  statusEl.style.color = "#aaa"
+
+  let payload = {
+    user_id:     userId,
+    name:        document.getElementById("name").value,
+    phone:       document.getElementById("phone").value,
+    age:         document.getElementById("age").value,
+    weight:      document.getElementById("weight").value,
+    height:      document.getElementById("height").value,
+    waist:       document.getElementById("waist").value,
+    neck:        document.getElementById("neck").value,
+    goal_weight: document.getElementById("goal").value
+  }
+
+  try {
+    let res  = await fetch("/update_profile", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    })
+    let data = await res.json()
+    if(data.status === "success"){
+      editMode = false
+      document.querySelectorAll("input").forEach(i => i.disabled = true)
+      document.getElementById("logoutBtn").style.display = "inline-block"
+      document.getElementById("updateBtn").style.display = "none"
+      statusEl.style.color = "#4caf50"
+      statusEl.innerText   = "✓ Profile updated successfully"
+      setTimeout(() => statusEl.innerText = "", 3000)
+    } else {
+      statusEl.style.color = "#ff6b6b"
+      statusEl.innerText   = data.message || "Update failed"
+    }
+  } catch(e) {
+    statusEl.style.color = "#ff6b6b"
+    statusEl.innerText   = "Server error. Try again."
+  }
+}
+
+function logout(){
+  localStorage.removeItem("user_id")
+  localStorage.removeItem("user_name")
+  localStorage.removeItem("profile_pic")
+  window.location.href = "/"
+}
+
+function goBack(){
+  if(editMode) updateProfile()
+  else window.location.href = "/dashboard"
+}
+
+function openDelete(){ document.getElementById("deleteOverlay").classList.add("open") }
+function closeDelete(){ document.getElementById("deleteOverlay").classList.remove("open") }
+
+async function confirmDelete(){
+  try {
+    let res  = await fetch("/delete_account", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({user_id: userId})
+    })
+    let data = await res.json()
+    if(data.status === "success"){
+      localStorage.clear()
+      window.location.href = "/"
+    }
+  } catch(e) {
+    alert("Error deleting account. Try again.")
+  }
+}
+</script>
+</body>
+</html>

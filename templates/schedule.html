@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<title>Scheduling</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Outfit',sans-serif}
+body{height:100vh;background:black;color:#c68642;display:flex;flex-direction:column;align-items:center;}
+#bgVideo{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:-2;}
+body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:-1;}
+.header{width:100%;text-align:center;padding:25px;border-bottom:1px solid #333;position:relative;}
+.header h1{font-family:Impact;letter-spacing:4px;}
+.backBtn{position:absolute;left:20px;top:20px;background:#333;color:white;border:none;padding:8px 14px;cursor:pointer;border-radius:5px;}
+.container{margin-top:40px;width:650px;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);padding:40px;border-radius:10px;}
+.question{margin-bottom:20px;}
+.question label{display:block;margin-bottom:6px;}
+select,input{width:100%;padding:10px;background:#222;border:none;color:#c68642;border-radius:4px;}
+.btn{margin-top:25px;width:100%;padding:12px;border:none;border-radius:6px;cursor:pointer;background:linear-gradient(90deg,#6b3b1c,#c68642,#6b3b1c);font-weight:bold;}
+.editBtn{margin-top:15px;padding:10px;width:100%;background:#8c4b1f;border:none;cursor:pointer;color:white;border-radius:4px;}
+.statusMsg{text-align:center;margin-top:10px;font-size:13px;min-height:16px;}
+.viewRow{margin-bottom:12px;font-size:15px;}
+.viewRow b{color:#c68642;}
+</style>
+</head>
+<body>
+
+<video autoplay muted loop id="bgVideo"><source src="{{ url_for('static', filename='laidclip.mp4') }}" type="video/mp4"></video>
+<div class="header">
+  <button class="backBtn" onclick="goBack()">← Back</button>
+  <h1>SCHEDULING</h1>
+</div>
+
+<div class="container">
+
+  <!-- QUESTION MODE -->
+  <div id="questionMode">
+    <div class="question">
+      <label>How many days do you workout per week?</label>
+      <select id="days" onchange="generateDays()">
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+      </select>
+    </div>
+
+    <div class="question">
+      <label>What time should we notify you?</label>
+      <input type="time" id="notifyTime">
+    </div>
+
+    <div id="muscleDays"></div>
+
+    <div class="question">
+      <label>How long is each workout session?</label>
+      <select id="time">
+        <option>30 minutes</option>
+        <option>45 minutes</option>
+        <option>1 hour</option>
+        <option>1.5 hours</option>
+        <option>2 hours</option>
+        <option>2.5 hours</option>
+        <option>3 hours</option>
+      </select>
+    </div>
+
+    <div class="statusMsg" id="statusMsg"></div>
+    <button class="btn" onclick="saveSchedule()">Ready to Begin</button>
+  </div>
+
+  <!-- VIEW MODE -->
+  <div id="viewMode" style="display:none">
+    <div class="viewRow"><b>Workout Days:</b> <span id="v_days"></span></div>
+    <div class="viewRow"><b>Notify At:</b> <span id="v_notify"></span></div>
+    <div id="viewMuscles"></div>
+    <div class="viewRow"><b>Duration:</b> <span id="v_time"></span></div>
+    <button class="editBtn" onclick="editSchedule()">Edit Schedule</button>
+  </div>
+
+</div>
+
+<script>
+const userId = localStorage.getItem("user_id")
+if(!userId) window.location.href = "/"
+
+function generateDays(){
+  let days      = parseInt(document.getElementById("days").value)
+  let container = document.getElementById("muscleDays")
+  container.innerHTML = ""
+  for(let i = 1; i <= days; i++){
+    container.innerHTML += `
+      <div class="question">
+        <label>Muscle group for Day ${i}:</label>
+        <input id="day${i}" placeholder="e.g. Chest, Back, Legs...">
+      </div>`
+  }
+}
+
+window.onload = async function(){
+  generateDays()
+
+  try {
+    let res  = await fetch(`/get_schedule/${userId}`)
+    let data = await res.json()
+
+    if(data.status === "success"){
+      let s = data.schedule
+      document.getElementById("v_days").innerText   = s.days + " days"
+      document.getElementById("v_notify").innerText = s.notify
+      document.getElementById("v_time").innerText   = s.time
+
+      let muscles = document.getElementById("viewMuscles")
+      muscles.innerHTML = s.muscles.map((m, i) =>
+        `<div class="viewRow"><b>Day ${i+1}:</b> ${m}</div>`
+      ).join("")
+
+      document.getElementById("questionMode").style.display = "none"
+      document.getElementById("viewMode").style.display     = "block"
+    }
+  } catch(e) {}
+}
+
+async function saveSchedule(){
+  let days    = parseInt(document.getElementById("days").value)
+  let muscles = []
+  let statusEl = document.getElementById("statusMsg")
+
+  for(let i = 1; i <= days; i++){
+    let val = document.getElementById("day" + i)?.value.trim()
+    if(!val){ statusEl.innerText = `Please fill in Day ${i} muscle group`; return }
+    muscles.push(val)
+  }
+
+  let payload = {
+    user_id: userId,
+    days,
+    notify:  document.getElementById("notifyTime").value,
+    muscles,
+    time:    document.getElementById("time").value
+  }
+
+  statusEl.innerText = "Saving..."
+
+  try {
+    let res  = await fetch("/save_schedule", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    })
+    let data = await res.json()
+
+    if(data.status === "success"){
+      window.location.href = "/dashboard"
+    } else {
+      statusEl.innerText = data.message || "Save failed"
+    }
+  } catch(e) {
+    statusEl.innerText = "Server error. Try again."
+  }
+}
+
+function editSchedule(){
+  document.getElementById("questionMode").style.display = "block"
+  document.getElementById("viewMode").style.display     = "none"
+  generateDays()
+}
+
+function goBack(){
+  window.location.href = "/dashboard"
+}
+</script>
+</body>
+</html>

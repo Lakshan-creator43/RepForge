@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<title>About - Rep Forge</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Outfit',sans-serif}
+body{background:black;color:#c68642;display:flex;flex-direction:column;align-items:center;min-height:100vh;}
+#bgVideo{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:-2;}
+body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:-1;}
+.header{width:100%;text-align:center;padding:30px;border-bottom:1px solid #333;position:relative;}
+.header h1{font-family:Impact;letter-spacing:4px;}
+.backBtn{position:absolute;left:20px;top:30px;background:#c68642;color:black;border:none;padding:8px 16px;cursor:pointer;border-radius:6px;font-weight:bold;}
+.backBtn:hover{background:#a86c34;}
+.container{width:70%;margin-top:40px;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);padding:30px;border-radius:10px;}
+.container h2{text-align:center;margin-bottom:20px;}
+.container p{margin-bottom:15px;color:#bbb;line-height:24px;}
+</style>
+</head>
+<body>
+<video autoplay muted loop id="bgVideo">
+<source src="{{ url_for('static', filename='laidclip.mp4') }}" type="video/mp4">
+</video>
+<div class="header">
+  <button class="backBtn" onclick="goBack()">Back</button>
+  <h1>REP FORGE</h1>
+</div>
+<div class="container">
+  <h2>Terms & Conditions</h2>
+  <p>1. Rep Forge provides workout suggestions for fitness purposes only. Users should consult a professional trainer or doctor before performing any exercises.</p>
+  <p>2. Users are responsible for maintaining the accuracy of their personal and fitness information entered in the application.</p>
+  <p>3. Rep Forge is not responsible for any injuries or health issues caused while performing workouts suggested by the system.</p>
+  <p>4. User data such as personal and fitness information will be stored securely and used only to improve the workout experience.</p>
+  <p>5. Any misuse of the platform or attempt to manipulate system features may result in account restrictions.</p>
+</div>
+<script>
+function goBack(){ window.location.href = "/dashboard" }
+</script>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<title>Rep Forge Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{height:100vh;background:black;color:#c68642;font-family:'Montserrat',sans-serif;overflow:hidden;}
+#bgVideo{position:absolute;width:100%;height:100%;object-fit:cover;z-index:-1;}
+.topbar{height:10%;display:flex;align-items:center;justify-content:center;position:relative;border-bottom:1px solid #333;}
+.notify{position:absolute;left:20px;font-size:22px;cursor:pointer;transition:.3s;}
+.notify.off{color:#555;}
+.musicBtn{position:absolute;right:20px;font-size:20px;cursor:pointer;color:#c68642;transition:.3s;}
+.musicBtn.muted{color:#555;}
+.notify-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#222;color:#c68642;padding:10px 25px;border-radius:20px;font-size:14px;z-index:999;opacity:0;transition:.3s;pointer-events:none;}
+.notify-toast.show{opacity:1;}
+.main{height:90%;display:flex;}
+.leftPanel{width:20%;border-right:1px solid #333;padding:20px;display:none;background:rgba(0,0,0,0.8);font-family:'Outfit',sans-serif;}
+.leftPanel h3{margin-bottom:15px;}
+.stat{margin:30px 0;padding:10px;background:#1a1a1a;border-radius:6px;font-size:14px;}
+.centerPanel{flex:1;position:relative;overflow:hidden;}
+.workoutBox{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.75);padding:30px;border-radius:10px;width:60%;max-height:70%;overflow-y:auto;}
+.workoutBox h2{text-align:center;margin-bottom:5px;}
+.muscleLabel{text-align:center;color:#888;font-size:13px;margin-bottom:15px;}
+.workoutBox ul{line-height:36px;text-align:center;list-style:none;}
+.workoutBox ul li{color:#ddd;border-bottom:1px solid #222;padding:4px 0;}
+.bottomControls{position:absolute;bottom:20px;left:20px;right:20px;display:flex;justify-content:space-between;align-items:center;}
+.chatIcon{font-size:25px;cursor:pointer;}
+.doneBtn{background:linear-gradient(90deg,#6b3b1c,#c68642,#6b3b1c);border:none;padding:10px 20px;cursor:pointer;border-radius:6px;color:#111;font-weight:bold;}
+.rightPanel{width:20%;border-left:1px solid #333;padding:20px;text-align:center;font-family:"Anton",sans-serif;background:rgba(0,0,0,0.5);}
+.userIcon{font-size:60px;margin-bottom:5px;}
+.userName{font-size:14px;font-family:'Outfit',sans-serif;margin-bottom:10px;color:#aaa;}
+.manageBtn{margin-bottom:10px;padding:10px;border:none;background:#c68642;cursor:pointer;border-radius:6px;width:100%;font-family:'Outfit',sans-serif;}
+.statsBtn{margin-bottom:20px;padding:10px;border:none;background:#8c4b1f;cursor:pointer;border-radius:6px;width:100%;color:white;}
+.menu{text-align:left;margin-top:20px;font-family:'Outfit',sans-serif;}
+.menu li{list-style:none;margin:34px 0;cursor:pointer;}
+.menu li:hover{color:white;}
+.chatModal{display:none;position:fixed;bottom:80px;left:20px;width:320px;height:420px;background:#111;border:1px solid #333;border-radius:10px;flex-direction:column;z-index:100;}
+.chatModal.open{display:flex;}
+.chatHeader{padding:12px 15px;border-bottom:1px solid #333;font-size:14px;display:flex;justify-content:space-between;}
+.chatMessages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
+.msg{padding:8px 12px;border-radius:8px;font-size:13px;line-height:1.5;max-width:90%;}
+.msg.user{background:#2a1a12;align-self:flex-end;color:#c68642;}
+.msg.ai{background:#1a1a1a;align-self:flex-start;color:#ddd;}
+.chatInputRow{display:flex;border-top:1px solid #333;padding:8px;}
+.chatInputRow input{flex:1;background:#000;border:none;color:#c68642;padding:8px;font-size:13px;}
+.chatInputRow input::placeholder{color:#555;}
+.chatInputRow button{background:#8c4b1f;border:none;color:white;padding:8px 12px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<video autoplay muted loop id="bgVideo">
+<source src="{{ url_for('static', filename='laidclip.mp4') }}" type="video/mp4">
+</video>
+
+<!-- BACKGROUND MUSIC — plays once, low volume -->
+<audio id="bgMusic" preload="auto">
+  <source src="{{ url_for('static', filename='bgmusic.mp3') }}" type="audio/mp3">
+</audio>
+
+<div class="notify-toast" id="notifyToast"></div>
+
+<div class="topbar">
+  <i class="fa fa-bell notify" id="bellIcon" onclick="toggleNotifications()" title="Toggle Notifications"></i>
+  <h1>REP FORGE</h1>
+  <i class="fa fa-volume-up musicBtn" id="musicBtn" onclick="toggleMusic()" title="Mute / Unmute Music"></i>
+</div>
+
+<div class="main">
+
+  <div class="leftPanel" id="statsPanel">
+    <h3>Your Stats</h3>
+    <div class="stat">Height : <span id="s_height">--</span> cm</div>
+    <div class="stat">Weight : <span id="s_weight">--</span> kg</div>
+    <div class="stat">Neck   : <span id="s_neck">--</span> cm</div>
+    <div class="stat">Waist  : <span id="s_waist">--</span> cm</div>
+    <div class="stat">Goal   : <span id="s_goal">--</span> kg</div>
+  </div>
+
+  <div class="centerPanel">
+    <div class="workoutBox">
+      <h2>Today's Workout</h2>
+      <p class="muscleLabel" id="muscleLabel"></p>
+      <ul id="workoutList">
+        <li style="color:#888">Loading your workout...</li>
+      </ul>
+    </div>
+    <div class="bottomControls">
+      <i class="fa fa-robot chatIcon" onclick="toggleChat()"></i>
+      <button class="doneBtn" onclick="markDone()">Done ✓</button>
+    </div>
+  </div>
+
+  <div class="rightPanel">
+    <div id="dashPicWrapper" style="margin-bottom:5px;"><i class="fa-solid fa-circle-user userIcon" id="dashDefaultIcon"></i><img id="dashPic" src="" style="width:70px;height:70px;border-radius:50%;object-fit:cover;border:2px solid #c68642;display:none;"></div>
+    <p class="userName" id="userName">--</p>
+    <button class="manageBtn" onclick="openProfile()">Manage Profile</button>
+    <button class="statsBtn" onclick="toggleStats()">Your Stats</button>
+    <ul class="menu">
+      <li onclick="openPage('history')">History</li>
+      <li onclick="openPage('progress')">Progress</li>
+      <li onclick="openPage('schedule')">Schedules</li>
+      <li onclick="openPage('about')">About</li>
+      <li onclick="openPage('help')">Help</li>
+    </ul>
+  </div>
+
+</div>
+
+<div class="chatModal" id="chatModal">
+  <div class="chatHeader">
+    <span>💬 CBum AI Coach</span>
+    <span style="cursor:pointer" onclick="toggleChat()">✕</span>
+  </div>
+  <div class="chatMessages" id="chatMessages">
+    <div class="msg ai">Hey! I'm CBum AI. Ask me anything about fitness, nutrition, or your workouts.</div>
+  </div>
+  <div class="chatInputRow">
+    <input type="text" id="chatInput" placeholder="Ask CBum AI..." onkeydown="if(event.key==='Enter')sendChat()">
+    <button onclick="sendChat()"><i class="fa fa-paper-plane"></i></button>
+  </div>
+</div>
+
+<script>
+const userId   = localStorage.getItem("user_id")
+const userName = localStorage.getItem("user_name") || "Athlete"
+if(!userId) window.location.href = "/"
+document.getElementById("userName").innerText = userName
+
+// ── BACKGROUND MUSIC ──
+const bgMusic = document.getElementById("bgMusic")
+bgMusic.volume = 0.2  // low volume
+let muted = false
+
+// Play once on first user interaction
+document.addEventListener("click", function startOnce(){
+  bgMusic.play().catch(e => {})
+  document.removeEventListener("click", startOnce)
+}, { once: true })
+
+function toggleMusic(){
+  let btn = document.getElementById("musicBtn")
+  if(muted){
+    bgMusic.muted = false
+    muted = false
+    btn.classList.remove("muted")
+    btn.classList.remove("fa-volume-mute")
+    btn.classList.add("fa-volume-up")
+    showToast("🎵 Music ON")
+  } else {
+    bgMusic.muted = true
+    muted = true
+    btn.classList.add("muted")
+    btn.classList.remove("fa-volume-up")
+    btn.classList.add("fa-volume-mute")
+    showToast("🔇 Music OFF")
+  }
+}
+
+// ── PAGE LOAD ──
+window.onload = function(){
+  loadDashPic()
+  loadWorkout()
+  loadStats()
+  loadNotificationStatus()
+}
+
+// ── LOAD WORKOUT ──
+async function loadWorkout(){
+  try {
+    let res  = await fetch(`/today_workout/${userId}`)
+    let data = await res.json()
+    let list = document.getElementById("workoutList")
+    if(data.status === "success"){
+      document.getElementById("muscleLabel").innerText = "Muscle: " + data.muscle
+      let exercises = data.workout.split("\n").filter(l => l.trim())
+      list.innerHTML = exercises.map(e => `<li>${e}</li>`).join("")
+    } else {
+      list.innerHTML = `<li style="color:#888">${data.message}</li>`
+    }
+  } catch(e) {
+    document.getElementById("workoutList").innerHTML = "<li style='color:#888'>Could not load workout.</li>"
+  }
+}
+
+// ── LOAD STATS ──
+async function loadStats(){
+  try {
+    let res  = await fetch(`/get_profile/${userId}`)
+    let data = await res.json()
+    if(data.status === "success"){
+      let u = data.user
+      document.getElementById("s_height").innerText = u.height || "--"
+      document.getElementById("s_weight").innerText = u.weight || "--"
+      document.getElementById("s_neck").innerText   = u.neck   || "--"
+      document.getElementById("s_waist").innerText  = u.waist  || "--"
+      document.getElementById("s_goal").innerText   = u.goal_weight || "--"
+    }
+  } catch(e) {}
+}
+
+// ── MARK DONE ──
+async function markDone(){
+  try {
+    await fetch("/complete_workout", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({user_id: userId})
+    })
+    showToast("🔥 Workout Complete! Great job!")
+  } catch(e) {
+    alert("Could not save. Try again.")
+  }
+}
+
+// ── TOGGLE STATS ──
+function toggleStats(){
+  let panel = document.getElementById("statsPanel")
+  panel.style.display = (panel.style.display === "block") ? "none" : "block"
+}
+
+// ── TOGGLE CHAT ──
+function toggleChat(){
+  document.getElementById("chatModal").classList.toggle("open")
+}
+
+// ── AI CHAT ──
+async function sendChat(){
+  let input   = document.getElementById("chatInput")
+  let message = input.value.trim()
+  if(!message) return
+  let msgBox = document.getElementById("chatMessages")
+  msgBox.innerHTML += `<div class="msg user">${message}</div>`
+  input.value = ""
+  msgBox.innerHTML += `<div class="msg ai" id="typing">Thinking...</div>`
+  msgBox.scrollTop = msgBox.scrollHeight
+  try {
+    let res  = await fetch("/chat", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({user_id: userId, message})
+    })
+    let data = await res.json()
+    document.getElementById("typing").remove()
+    msgBox.innerHTML += `<div class="msg ai">${data.reply || "Sorry, could not respond."}</div>`
+  } catch(e) {
+    document.getElementById("typing").remove()
+    msgBox.innerHTML += `<div class="msg ai">Connection error. Try again.</div>`
+  }
+  msgBox.scrollTop = msgBox.scrollHeight
+}
+
+// ── TOGGLE NOTIFICATIONS ──
+async function toggleNotifications(){
+  try {
+    let res  = await fetch("/toggle_notifications", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({user_id: userId})
+    })
+    let data = await res.json()
+    if(data.status === "success"){
+      updateBell(data.enabled)
+      showToast(data.enabled ? "🔔 Notifications ON" : "🔕 Notifications OFF")
+    }
+  } catch(e) {}
+}
+
+async function loadNotificationStatus(){
+  try {
+    let res  = await fetch(`/get_notification_status/${userId}`)
+    let data = await res.json()
+    if(data.status === "success") updateBell(data.enabled)
+  } catch(e) {}
+}
+
+function updateBell(enabled){
+  let bell = document.getElementById("bellIcon")
+  if(enabled){
+    bell.classList.remove("off","fa-bell-slash")
+    bell.classList.add("fa-bell")
+  } else {
+    bell.classList.add("off")
+    bell.classList.remove("fa-bell")
+    bell.classList.add("fa-bell-slash")
+  }
+}
+
+// ── TOAST ──
+function showToast(msg){
+  let t = document.getElementById("notifyToast")
+  t.innerText = msg
+  t.classList.add("show")
+  setTimeout(() => t.classList.remove("show"), 2500)
+}
+
+function openProfile(){ window.location.href = "/profile" }
+
+function loadDashPic(){
+  let pic = localStorage.getItem("profile_pic")
+  if(pic){
+    document.getElementById("dashPic").src = pic
+    document.getElementById("dashPic").style.display = "block"
+    document.getElementById("dashDefaultIcon").style.display = "none"
+  }
+}
+function openPage(page){ window.location.href = "/" + page }
+</script>
+</body>
+</html>
