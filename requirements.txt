@@ -4,6 +4,6 @@ bcrypt
 groq
 yagmail
 firebase-admin
-apscheduler
 python-dotenv
+twilio
 psycopg2-binary

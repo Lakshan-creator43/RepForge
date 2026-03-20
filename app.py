@@ -6,7 +6,8 @@ import datetime
 import os
 import base64
 from dotenv import load_dotenv
-from apscheduler.schedulers.background import BackgroundScheduler
+import threading
+import time
 
 try:
     from twilio.rest import Client as TwilioClient
@@ -744,12 +745,44 @@ def reschedule_all_users():
         print(f"Reschedule error: {e}")
 
 
-scheduler = BackgroundScheduler()
-scheduler.start()
-
-# Init DB and load schedules on startup
+# Init DB on startup
 init_db()
-reschedule_all_users()
+
+# Simple background thread — checks every minute if any user needs workout sent
+def scheduler_loop():
+    print("🔄 Scheduler thread started!")
+    while True:
+        try:
+            now_utc = datetime.datetime.utcnow()
+            now_ist = now_utc + datetime.timedelta(hours=5, minutes=30)
+            current_time = f"{now_ist.hour:02d}:{now_ist.minute:02d}"
+
+            p = P()
+            conn = db()
+            cur = query(conn, "SELECT user_id, notify_time FROM schedule WHERE notify_time IS NOT NULL AND notify_time != ''")
+            schedules = fetchall(cur)
+            close(conn)
+
+            for s in schedules:
+                try:
+                    if s["notify_time"] == current_time:
+                        print(f"⏰ Firing for user {s['user_id']} at {current_time} IST")
+                        send_workout_to_user(s["user_id"])
+                except Exception as e:
+                    print(f"Scheduler loop error: {e}")
+
+        except Exception as e:
+            print(f"Scheduler error: {e}")
+
+        time.sleep(60)  # check every minute
+
+# Start scheduler thread
+scheduler_thread = threading.Thread(target=scheduler_loop, daemon=True)
+scheduler_thread.start()
+print("✅ Scheduler thread running!")
+
+def reschedule_all_users():
+    pass  # not needed anymore — loop handles it
 
 
 # ─────────────────────────────────────────
