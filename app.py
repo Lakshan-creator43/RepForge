@@ -7,7 +7,11 @@ import datetime
 import os
 from dotenv import load_dotenv
 from apscheduler.schedulers.background import BackgroundScheduler
-from twilio.rest import Client as TwilioClient
+try:
+    from twilio.rest import Client as TwilioClient
+    TWILIO_AVAILABLE = True
+except:
+    TWILIO_AVAILABLE = False
 
 from chatbot_ai import generate_workout, chat_with_ai
 from mailer import send_workout_email, send_daily_summary_email
@@ -20,10 +24,15 @@ app.secret_key = os.getenv("SECRET_KEY", "repforge_secret")
 CORS(app)
 
 # Twilio client
-twilio_client = TwilioClient(
-    os.getenv("TWILIO_SID"),
-    os.getenv("TWILIO_TOKEN")
-)
+twilio_client = None
+if TWILIO_AVAILABLE:
+    try:
+        twilio_client = TwilioClient(
+            os.getenv("TWILIO_SID"),
+            os.getenv("TWILIO_TOKEN")
+        )
+    except:
+        pass
 
 
 # ─────────────────────────────────────────
