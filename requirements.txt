@@ -6,3 +6,4 @@ yagmail
 firebase-admin
 apscheduler
 python-dotenv
+twilio
