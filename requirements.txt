@@ -2,7 +2,6 @@ flask
 flask-cors
 bcrypt
 groq
-yagmail
 firebase-admin
 python-dotenv
 twilio
