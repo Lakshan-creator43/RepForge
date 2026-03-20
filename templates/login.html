@@ -3,13 +3,14 @@
 <head>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rep Forge Login</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:"Times New Roman",Times,serif;}
 body{margin:0;height:100vh;display:flex;align-items:center;}
 #bg-video{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:-1;}
 body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:-1;}
-.container{position:fixed;right:0;top:0;width:20%;height:100vh;background:black;padding:40px;display:flex;flex-direction:column;justify-content:center;overflow:hidden;}
+.container{position:fixed;right:0;top:0;width:20%;height:100vh;background:black;padding:40px;display:flex;flex-direction:column;justify-content:center;overflow:hidden;overflow-y:auto;}
 @media(max-width:900px){.container{width:100%;}}
 .title1,.title2{font-family:Impact;font-size:60px;font-style:italic;letter-spacing:4px;text-align:center;text-transform:uppercase;color:#8c500f;text-shadow:0 3px 6px rgba(0,0,0,0.9),0 0 6px #8c4b1f;}
 .title2{margin-bottom:15px;}
@@ -34,6 +35,25 @@ button.submit,.next-btn,.back-btn{margin-top:15px;padding:12px;border:none;borde
 .slide.active{left:0;}
 .slide.left{left:-100%;}
 .error-msg{color:#ff6b6b;font-size:12px;margin-top:5px;text-align:center;min-height:16px;}
+</style>
+
+<style>
+@media(max-width:768px){
+  .container, .formBox, .helpBox, .historyContainer { width:95% !important; padding:20px !important; }
+  .main { flex-direction:column !important; }
+  .rightPanel { width:100% !important; border-left:none !important; border-top:1px solid #333; padding:10px !important; }
+  .leftPanel { width:100% !important; border-right:none !important; }
+  .centerPanel { width:100% !important; }
+  .workoutBox { width:90% !important; }
+  .grid { grid-template-columns:1fr !important; }
+  .topbar h1 { font-size:20px !important; }
+  .title1, .title2 { font-size:40px !important; }
+  .container.fixed-right { position:relative !important; width:100% !important; height:auto !important; }
+  .menu { display:flex; flex-wrap:wrap; gap:10px; }
+  .menu li { margin:5px !important; }
+  .statsRow { flex-wrap:wrap !important; gap:10px !important; }
+  .charts { width:95% !important; }
+}
 </style>
 </head>
 <body>
