@@ -53,22 +53,50 @@ body{height:100vh;background:black;color:#c68642;font-family:'Montserrat',sans-s
 .chatInputRow button{background:#8c4b1f;border:none;color:white;padding:8px 12px;cursor:pointer;}
 </style>
 
+
+
 <style>
 @media(max-width:768px){
-  .container, .formBox, .helpBox, .historyContainer { width:95% !important; padding:20px !important; }
-  .main { flex-direction:column !important; }
-  .rightPanel { width:100% !important; border-left:none !important; border-top:1px solid #333; padding:10px !important; }
-  .leftPanel { width:100% !important; border-right:none !important; }
-  .centerPanel { width:100% !important; }
-  .workoutBox { width:90% !important; }
-  .grid { grid-template-columns:1fr !important; }
-  .topbar h1 { font-size:20px !important; }
-  .title1, .title2 { font-size:40px !important; }
-  .container.fixed-right { position:relative !important; width:100% !important; height:auto !important; }
-  .menu { display:flex; flex-wrap:wrap; gap:10px; }
-  .menu li { margin:5px !important; }
-  .statsRow { flex-wrap:wrap !important; gap:10px !important; }
-  .charts { width:95% !important; }
+  body{ overflow-y:auto !important; height:auto !important; }
+  .main{ flex-direction:column !important; height:auto !important; }
+  .centerPanel{ 
+    width:100% !important; 
+    min-height:60vh !important;
+    position:relative !important;
+  }
+  .workoutBox{
+    width:92% !important;
+    position:relative !important;
+    top:auto !important; left:auto !important;
+    transform:none !important;
+    margin:20px auto !important;
+  }
+  .bottomControls{
+    position:relative !important;
+    margin:10px 20px 20px !important;
+  }
+  .rightPanel{
+    width:100% !important;
+    border-left:none !important;
+    border-top:1px solid #333 !important;
+    padding:15px !important;
+  }
+  .menu{ 
+    display:flex !important; 
+    flex-wrap:wrap !important; 
+    gap:5px !important;
+    margin-top:10px !important;
+  }
+  .menu li{ margin:5px 10px !important; }
+  .leftPanel{ width:100% !important; }
+  .topbar h1{ font-size:22px !important; }
+  .userIcon{ font-size:40px !important; }
+  .manageBtn, .statsBtn{ padding:8px !important; font-size:13px !important; }
+  .chatModal{ 
+    width:90% !important; 
+    left:5% !important;
+    bottom:10px !important;
+  }
 }
 </style>
 </head>

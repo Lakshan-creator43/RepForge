@@ -47,22 +47,28 @@ input:disabled{opacity:0.6;}
 .confirmDeleteBtn{background:#ff4444;border:none;padding:10px 25px;color:white;cursor:pointer;border-radius:6px;font-weight:bold;}
 </style>
 
+
+
 <style>
 @media(max-width:768px){
-  .container, .formBox, .helpBox, .historyContainer { width:95% !important; padding:20px !important; }
-  .main { flex-direction:column !important; }
-  .rightPanel { width:100% !important; border-left:none !important; border-top:1px solid #333; padding:10px !important; }
-  .leftPanel { width:100% !important; border-right:none !important; }
-  .centerPanel { width:100% !important; }
-  .workoutBox { width:90% !important; }
-  .grid { grid-template-columns:1fr !important; }
-  .topbar h1 { font-size:20px !important; }
-  .title1, .title2 { font-size:40px !important; }
-  .container.fixed-right { position:relative !important; width:100% !important; height:auto !important; }
-  .menu { display:flex; flex-wrap:wrap; gap:10px; }
-  .menu li { margin:5px !important; }
-  .statsRow { flex-wrap:wrap !important; gap:10px !important; }
-  .charts { width:95% !important; }
+  .topbar, .topbar > div{ 
+    flex-wrap:wrap !important; 
+    gap:8px !important;
+    padding:10px 15px !important;
+  }
+  .formBox{ 
+    width:95% !important; 
+    padding:20px 15px !important;
+    margin:10px auto !important;
+  }
+  .grid{ grid-template-columns:1fr !important; }
+  .container{ padding:10px !important; align-items:flex-start !important; }
+  .progressBtn, .logoutBtn, .updateBtn{ 
+    padding:6px 10px !important; 
+    font-size:12px !important; 
+  }
+  .backBtn{ padding:6px 10px !important; font-size:12px !important; }
+  input{ font-size:16px !important; }
 }
 </style>
 </head>
