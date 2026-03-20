@@ -703,13 +703,21 @@ def send_workout_to_user(user_id):
         traceback.print_exc()
 
 
+def ist_to_utc(hour, minute):
+    """Convert India time (IST = UTC+5:30) to UTC"""
+    total_minutes = hour * 60 + minute
+    total_minutes -= 330  # subtract 5 hours 30 minutes
+    if total_minutes < 0:
+        total_minutes += 1440  # wrap around midnight
+    return total_minutes // 60, total_minutes % 60
+
+
 def reschedule_all_users():
     try:
         for job in scheduler.get_jobs():
             if job.id.startswith("user_"):
                 scheduler.remove_job(job.id)
 
-        p = P()
         conn = db()
         cur = query(conn, "SELECT user_id, notify_time FROM schedule WHERE notify_time IS NOT NULL AND notify_time != ''")
         schedules = fetchall(cur)
@@ -721,13 +729,15 @@ def reschedule_all_users():
                 if not notify_time:
                     continue
                 hour, minute = notify_time.split(":")
+                # Convert IST to UTC for server scheduling
+                utc_hour, utc_minute = ist_to_utc(int(hour), int(minute))
                 uid = s["user_id"]
                 scheduler.add_job(
                     send_workout_to_user, trigger="cron",
-                    hour=int(hour), minute=int(minute),
+                    hour=utc_hour, minute=utc_minute,
                     args=[uid], id=f"user_{uid}", replace_existing=True
                 )
-                print(f"⏰ Scheduled user {uid} at {hour}:{minute}")
+                print(f"⏰ Scheduled user {uid} at {hour}:{minute} IST ({utc_hour:02d}:{utc_minute:02d} UTC)")
             except Exception as e:
                 print(f"Schedule error: {e}")
     except Exception as e:
