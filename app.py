@@ -757,19 +757,31 @@ def scheduler_loop():
             now_ist = now_utc + datetime.timedelta(hours=5, minutes=30)
             current_time = f"{now_ist.hour:02d}:{now_ist.minute:02d}"
 
-            p = P()
-            conn = db()
-            cur = query(conn, "SELECT user_id, notify_time FROM schedule WHERE notify_time IS NOT NULL AND notify_time != ''")
-            schedules = fetchall(cur)
-            close(conn)
+            print(f"🕐 Scheduler tick: {current_time} IST")
 
-            for s in schedules:
-                try:
-                    if s["notify_time"] == current_time:
-                        print(f"⏰ Firing for user {s['user_id']} at {current_time} IST")
-                        send_workout_to_user(s["user_id"])
-                except Exception as e:
-                    print(f"Scheduler loop error: {e}")
+            try:
+                conn = db()
+                cur = query(conn, "SELECT user_id, notify_time FROM schedule WHERE notify_time IS NOT NULL AND notify_time != ''")
+                schedules = fetchall(cur)
+                close(conn)
+                print(f"📋 Found {len(schedules)} scheduled users")
+
+                for s in schedules:
+                    try:
+                        user_time = s["notify_time"].strip() if s["notify_time"] else ""
+                        print(f"  Checking user {s['user_id']}: {user_time} vs {current_time}")
+                        if user_time == current_time:
+                            print(f"⏰ MATCH! Firing for user {s['user_id']} at {current_time} IST")
+                            send_workout_to_user(s["user_id"])
+                    except Exception as e:
+                        print(f"User schedule error: {e}")
+                        import traceback
+                        traceback.print_exc()
+
+            except Exception as e:
+                print(f"DB error in scheduler: {e}")
+                import traceback
+                traceback.print_exc()
 
         except Exception as e:
             print(f"Scheduler error: {e}")
