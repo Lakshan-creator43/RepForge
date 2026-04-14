@@ -59,11 +59,9 @@ def db():
         return conn
 
 def P():
-    """Return correct placeholder for current DB"""
     return "%s" if (DATABASE_URL and POSTGRES_AVAILABLE) else "?"
 
 def init_db():
-    """Create tables if they don't exist"""
     conn = db()
     cur = conn.cursor() if (DATABASE_URL and POSTGRES_AVAILABLE) else conn
 
@@ -126,7 +124,6 @@ def init_db():
         print("SQLite tables ready!")
 
 def query(conn, sql, params=()):
-    """Execute query - works for both SQLite and PostgreSQL"""
     if DATABASE_URL and POSTGRES_AVAILABLE:
         cur = conn.cursor()
         cur.execute(sql, params)
@@ -135,19 +132,13 @@ def query(conn, sql, params=()):
         return conn.execute(sql, params)
 
 def fetchone(cur):
-    if DATABASE_URL and POSTGRES_AVAILABLE:
-        return cur.fetchone()
     return cur.fetchone()
 
 def fetchall(cur):
-    if DATABASE_URL and POSTGRES_AVAILABLE:
-        return cur.fetchall()
     return cur.fetchall()
 
 def commit(conn):
     conn.commit()
-    if DATABASE_URL and POSTGRES_AVAILABLE:
-        pass
 
 def close(conn, cur=None):
     if cur and DATABASE_URL and POSTGRES_AVAILABLE:
@@ -475,7 +466,6 @@ def save_schedule():
             query(conn, f"INSERT INTO muscle_days (user_id, day_number, muscle) VALUES ({p},{p},{p})", (user_id, i, muscle))
         commit(conn)
         close(conn)
-        reschedule_all_users()
         return jsonify({"status": "success"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
@@ -614,10 +604,6 @@ def delete_account():
         query(conn, f"DELETE FROM users WHERE id={p}", (user_id,))
         commit(conn)
         close(conn)
-        try:
-            scheduler.remove_job(f"user_{user_id}")
-        except:
-            pass
         return jsonify({"status": "success"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
@@ -642,7 +628,7 @@ def chat():
 
 
 # ─────────────────────────────────────────
-# SCHEDULER
+# SEND WORKOUT TO USER
 # ─────────────────────────────────────────
 
 def send_workout_to_user(user_id):
@@ -696,105 +682,87 @@ def send_workout_to_user(user_id):
             if user["phone"]:
                 send_whatsapp(user["phone"], workout, user["name"])
 
-        print(f"✅ Workout sent to {user['name']} at scheduled time")
+        print(f"✅ Workout sent to {user['name']} at scheduled time", flush=True)
 
     except Exception as e:
-        print(f"❌ Scheduler error for user {user_id}: {e}")
+        print(f"❌ Scheduler error for user {user_id}: {e}", flush=True)
         import traceback
         traceback.print_exc()
 
 
-def ist_to_utc(hour, minute):
-    """Convert India time (IST = UTC+5:30) to UTC"""
-    total_minutes = hour * 60 + minute
-    total_minutes -= 330  # subtract 5 hours 30 minutes
-    if total_minutes < 0:
-        total_minutes += 1440  # wrap around midnight
-    return total_minutes // 60, total_minutes % 60
+# ─────────────────────────────────────────
+# SCHEDULER LOOP
+# ─────────────────────────────────────────
 
-
-def reschedule_all_users():
-    try:
-        for job in scheduler.get_jobs():
-            if job.id.startswith("user_"):
-                scheduler.remove_job(job.id)
-
-        conn = db()
-        cur = query(conn, "SELECT user_id, notify_time FROM schedule WHERE notify_time IS NOT NULL AND notify_time != ''")
-        schedules = fetchall(cur)
-        close(conn)
-
-        for s in schedules:
-            try:
-                notify_time = s["notify_time"]
-                if not notify_time:
-                    continue
-                hour, minute = notify_time.split(":")
-                # Convert IST to UTC for server scheduling
-                utc_hour, utc_minute = ist_to_utc(int(hour), int(minute))
-                uid = s["user_id"]
-                scheduler.add_job(
-                    send_workout_to_user, trigger="cron",
-                    hour=utc_hour, minute=utc_minute,
-                    args=[uid], id=f"user_{uid}", replace_existing=True
-                )
-                print(f"⏰ Scheduled user {uid} at {hour}:{minute} IST ({utc_hour:02d}:{utc_minute:02d} UTC)")
-            except Exception as e:
-                print(f"Schedule error: {e}")
-    except Exception as e:
-        print(f"Reschedule error: {e}")
-
-
-# Init DB on startup
-init_db()
-
-# Simple background thread — checks every minute if any user needs workout sent
 def scheduler_loop():
-    print("🔄 Scheduler thread started!")
+    print("🔄 Scheduler thread started!", flush=True)
     while True:
         try:
             now_utc = datetime.datetime.utcnow()
             now_ist = now_utc + datetime.timedelta(hours=5, minutes=30)
             current_time = f"{now_ist.hour:02d}:{now_ist.minute:02d}"
 
-            print(f"🕐 Scheduler tick: {current_time} IST")
+            print(f"🕐 Scheduler tick: {current_time} IST", flush=True)
 
             try:
                 conn = db()
                 cur = query(conn, "SELECT user_id, notify_time FROM schedule WHERE notify_time IS NOT NULL AND notify_time != ''")
                 schedules = fetchall(cur)
                 close(conn)
-                print(f"📋 Found {len(schedules)} scheduled users")
+                print(f"📋 Found {len(schedules)} scheduled users", flush=True)
 
                 for s in schedules:
                     try:
                         user_time = s["notify_time"].strip() if s["notify_time"] else ""
-                        print(f"  Checking user {s['user_id']}: {user_time} vs {current_time}")
+                        print(f"  Checking user {s['user_id']}: {user_time} vs {current_time}", flush=True)
                         if user_time == current_time:
-                            print(f"⏰ MATCH! Firing for user {s['user_id']} at {current_time} IST")
+                            print(f"⏰ MATCH! Firing for user {s['user_id']} at {current_time} IST", flush=True)
                             send_workout_to_user(s["user_id"])
                     except Exception as e:
-                        print(f"User schedule error: {e}")
+                        print(f"User schedule error: {e}", flush=True)
                         import traceback
                         traceback.print_exc()
 
             except Exception as e:
-                print(f"DB error in scheduler: {e}")
+                print(f"DB error in scheduler: {e}", flush=True)
                 import traceback
                 traceback.print_exc()
 
         except Exception as e:
-            print(f"Scheduler error: {e}")
+            print(f"Scheduler error: {e}", flush=True)
 
-        time.sleep(60)  # check every minute
+        time.sleep(60)
 
-# Start scheduler thread
+
+# ─────────────────────────────────────────
+# KEEP ALIVE — prevents Render from sleeping
+# ─────────────────────────────────────────
+
+def keep_alive():
+    time.sleep(30)  # wait for server to start first
+    while True:
+        try:
+            import requests
+            requests.get("https://repforge-1.onrender.com", timeout=10)
+            print("🏓 Keep alive ping sent!", flush=True)
+        except:
+            pass
+        time.sleep(600)  # ping every 10 minutes
+
+
+# ─────────────────────────────────────────
+# STARTUP
+# ─────────────────────────────────────────
+
+init_db()
+
 scheduler_thread = threading.Thread(target=scheduler_loop, daemon=True)
 scheduler_thread.start()
-print("✅ Scheduler thread running!")
+print("✅ Scheduler thread running!", flush=True)
 
-def reschedule_all_users():
-    pass  # not needed anymore — loop handles it
+keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
+keep_alive_thread.start()
+print("✅ Keep alive started!", flush=True)
 
 
 # ─────────────────────────────────────────
@@ -802,5 +770,7 @@ def reschedule_all_users():
 # ─────────────────────────────────────────
 
 if __name__ == "__main__":
+    import sys
+    sys.stdout.reconfigure(line_buffering=True)
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
